@@ -1,0 +1,15 @@
+Handling the Distinction: Domestic vs. International Validation
+
+The core challenge in the IshemaLink API was creating a system that could handle two contradictory operational requirements: the need for speed in domestic logistics versus the need for strict legal compliance in cross-border trade. I handled this distinction by decoupling the business logic into two separate applications domestic and international and implementing specific validation layers for each.
+
+For Domestic Shipments, the priority is efficiency. The business logic here assumes that local bike or bus couriers operate within a trusted zone (Rwanda). Therefore, the validation rules are minimal. I designed the Shipment model to require only essential tracking data: origin, destination, and owner. The validator checks for basic data integrity (e.g., ensuring the owner exists) but does not impose regulatory blocks. This allows for rapid high-volume order creation.
+
+In contrast, International Cargo requires strict adherence to East African Community (EAC) trade laws. I implemented this by creating a distinct InternationalCargo model with mandatory fields that do not exist in the domestic module, such as manifest_id, passport_number, and tin_number.
+The enforcement of these rules happens in the InternationalCargoSerializer. I overrode the standard validate() method to apply conditional logic. For example, the system explicitly checks the destination country. If a user attempts to create a shipment to Kenya (destination='KE'), the validator triggers a check for the tin_number. 
+
+If the TIN is missing, the API rejects the request with a ValidationError before it ever reaches the database.
+
+
+By architecting the system this way, I ensured that strict international compliance rules never slow down domestic operations. The distinction allows IshemaLink to enforce the law at the border without creating friction for local couriers.
+
+
