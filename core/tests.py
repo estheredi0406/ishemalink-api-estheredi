@@ -4,7 +4,7 @@ from .validators import validate_rwanda_phone, validate_nid
 
 class ValidatorTests(TestCase):
     """
-    Automated tests to prove Task 2 (Identity Validation) works correctly.
+    Automated tests to prove Identity Validation works correctly.
     """
 
     # --- Phone Number Tests ---

@@ -5,6 +5,7 @@ Django settings for ishemalink project.
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -30,6 +31,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # --- FIX 1: Added corsheaders and fixed missing commas ---
+    'corsheaders',  # <--- NEW: Required for the package you just installed
+    'rest_framework_simplejwt', # <--- FIXED: Added comma
+    'rest_framework_simplejwt.token_blacklist', # <--- FIXED: Added comma
     
     # Third-party libraries
     'rest_framework',
@@ -40,10 +46,14 @@ INSTALLED_APPS = [
     'domestic',
     'international',
 ]
- 
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    
+    # --- FIX 2: Added CORS Middleware (Must be before CommonMiddleware) ---
+    'corsheaders.middleware.CorsMiddleware', 
+    
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -124,11 +134,24 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
     ),
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+
+    # --- FIX 3: Fixed typo CLASEES -> CLASSES ---
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+
+    'DEFAULT_THROTTLE_RATES':{
+        'anon': '100/day',
+        'user': '1000/day',
+        'login_attempts': '5/min',
+    },
+    
+    'DEFAULT_PERMISSION_CLASSES':[
+        'rest_framework.permissions.IsAuthenticated', 
     ],
 }
 
@@ -138,3 +161,14 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'COMPONENT_SPLIT_REQUEST': True,
 }
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+# --- FIX 4: CORS Configuration ---
+CORS_ALLOW_ALL_ORIGINS = True
