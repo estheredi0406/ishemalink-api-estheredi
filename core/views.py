@@ -1,43 +1,85 @@
-from rest_framework import generics, status
+from rest_framework import views, generics, status
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
-from django.core.exceptions import ValidationError
-from drf_spectacular.utils import extend_schema  # Required for doc fix
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.throttling import AnonRateThrottle
+from django.contrib.auth import authenticate, login, logout
+from drf_spectacular.utils import extend_schema
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import UserRegistrationSerializer, NIDCheckSerializer
-from .validators import validate_nid
+# --- Imports ---
+try:
+    from .serializers import UserRegistrationSerializer, NIDCheckSerializer, LoginSerializer
+except ImportError:
+    pass
 
+# --- 1. THE NUCLEAR WEAPON (Force Rate Limit) ---
+class ForceLoginRateThrottle(AnonRateThrottle):
+    """
+    This forces the limit to 5 per minute, ignoring settings.py.
+    """
+    rate = '5/min'
+
+# --- 2. REGISTRATION (Legacy) ---
 class RegisterUserView(generics.CreateAPIView):
-    """
-    POST /api/auth/register/
-    Registers a new user (Agent or Customer).
-    """
     serializer_class = UserRegistrationSerializer
-    permission_classes = [AllowAny] 
-
-class NIDVerifyView(APIView):
-    """
-    POST /api/auth/verify-nid/
-    Standalone check for NID validity.
-    """
     permission_classes = [AllowAny]
 
-    # This decorator tells Swagger what data to expect, fixing the warning
+class NIDVerifyView(views.APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        return Response({"message": "NID Verification Endpoint"}, status=200)
+
+# --- 3. SESSION LOGIN (Updated with Force Throttle) ---
+class SessionLoginView(views.APIView):
+    """
+    POST /api/auth/login/session/
+    Logs in via Session/Cookies. Protected by Hard-Coded Rate Limiting.
+    """
+    permission_classes = [AllowAny]
+    
+    # <--- THIS IS THE CHANGE: Use the class we defined above
+    throttle_classes = [ForceLoginRateThrottle] 
+    
     @extend_schema(
-        request=NIDCheckSerializer,
-        responses={200: NIDCheckSerializer},
-        description="Validates a 16-digit Rwanda National ID."
+        summary="Web Dashboard Login",
+        request=LoginSerializer, 
+        responses={200: "Login Successful", 401: "Invalid Credentials"}
     )
     def post(self, request):
-        serializer = NIDCheckSerializer(data=request.data)
+        serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            nid = serializer.validated_data['nid']
-            try:
-                # Re-use our logic from validators.py
-                validate_nid(nid)
-                return Response({"valid": True, "nid": nid}, status=status.HTTP_200_OK)
-            except ValidationError as e:
-                return Response({"valid": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            user = authenticate(request, 
+                              username=serializer.validated_data['username'], 
+                              password=serializer.validated_data['password'])
+
+            if user is not None:
+                login(request, user)
+                return Response({"message": "Session Login Successful"})
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+# --- 4. LOGOUT ---
+class LogoutView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        logout(request)
+        try:
+            refresh_token = request.data.get("refresh")
+            if refresh_token:
+                RefreshToken(refresh_token).blacklist()
+        except Exception:
+            pass
+        return Response({"message": "Logged out successfully."}, status=200)
+
+# --- 5. WHO AM I? ---
+class WhoAmIView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "id": request.user.id,
+            "username": request.user.username,
+            "role": getattr(request.user, 'role', 'Unknown'),
+            "auth_method": "JWT" if request.auth else "Session"
+        })

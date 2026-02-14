@@ -5,6 +5,7 @@ Django settings for ishemalink project.
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -16,7 +17,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG') == 'True'
+# For the demo, we default to True if not set, to avoid "Allowed Host" crashes
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
@@ -33,6 +35,8 @@ INSTALLED_APPS = [
     
     # Third-party libraries
     'rest_framework',
+    'rest_framework_simplejwt',  # <--- REQUIRED for Auth
+    'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',  
 
     # Custom IshemaLink Apps
@@ -123,13 +127,26 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
+    
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+
+    # --- TASK 1: RATE LIMITING CONFIGURATION ---
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '5/minute',   # <--- THE KEY SETTING FOR YOUR VIDEO
+        'user': '1000/day',
+    }
 }
 
 SPECTACULAR_SETTINGS = {
@@ -137,4 +154,38 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'API for Rwandan logistics and cross-border trade.',
     'VERSION': '1.0.0',
     'COMPONENT_SPLIT_REQUEST': True,
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
+
+# --- TASK 1: OPENAPI SECURITY SCHEMES ---
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'IshemaLink Logistics API',
+    'DESCRIPTION': 'API for Rwandan logistics and cross-border trade.',
+    'VERSION': '1.0.0',
+    'COMPONENT_SPLIT_REQUEST': True,
+    # This adds the "Authorize" button to Swagger for JWT and Sessions
+    'SECURITY': [
+        {'BearerAuth': []},
+        {'CookieAuth': []},
+    ],
+    'APPEND_COMPONENTS': {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            },
+            "CookieAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "sessionid",
+            }
+        }
+    },
 }
