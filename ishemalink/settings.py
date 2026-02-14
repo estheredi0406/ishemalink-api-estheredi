@@ -9,6 +9,7 @@ from datetime import timedelta
 
 # Load environment variables from .env file
 load_dotenv()
+ENCRYPTION_KEY = os.getenv('yXZBpGBj7rlOa9K5LS39rZi3jC5n_r2snrkAZcxXmdY=')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
