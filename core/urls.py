@@ -1,5 +1,4 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
     RegisterUserView, 
     SessionLoginView, 
@@ -7,8 +6,14 @@ from .views import (
     WhoAmIView,
     RequestOTPView,
     VerifyOTPView,
-    VerifyNIDView  # Use the updated name here
+    VerifyNIDView,
+    ShipmentListView,
+    ExportMyDataView, 
+    ForgetMeView,
+    GovManifestListView, # Added for Task 4
+    RoleListView        # Added for Task 4
 )
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     # --- TASK 1: AUTHENTICATION ---
@@ -23,7 +28,13 @@ urlpatterns = [
     path('identity/otp/request/', RequestOTPView.as_view(), name='request-otp'),
     path('identity/otp/verify/', VerifyOTPView.as_view(), name='verify-otp'),
     path('identity/kyc/nid/', VerifyNIDView.as_view(), name='kyc-nid'),
-    
-    # Legacy NID path (redirecting to the new Task 2 view)
-    path('auth/verify-nid/', VerifyNIDView.as_view(), name='verify-nid'),
+
+    # --- TASK 3: PRIVACY ---
+    path('privacy/my-data/', ExportMyDataView.as_view(), name='export-data'),
+    path('privacy/forget-me/', ForgetMeView.as_view(), name='forget-me'),
+
+    # --- TASK 4: LOGISTICS & RBAC ---
+    path('ops/shipments/', ShipmentListView.as_view(), name='shipment-list'),
+    path('gov/manifests/', GovManifestListView.as_view(), name='gov-manifests'), # RURA View
+    path('rbac/roles/', RoleListView.as_view(), name='role-list'),              # Role List
 ]

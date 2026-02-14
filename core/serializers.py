@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from .models import Shipment
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from datetime import datetime
@@ -86,3 +87,24 @@ class PasswordChangeSerializer(serializers.Serializer):
     """ his Authenticated password change """
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
+
+
+class ShipmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shipment
+        fields = ['id', 'destination', 'sector', 'status', 'cargo_value']
+
+    def to_representation(self, instance):
+        """
+        Field-Level Security: Hide 'cargo_value' if the user is a Driver.
+        """
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+
+        # Check if the logged-in user is a Driver
+        if request and request.user.is_authenticated:
+            if request.user.role == 'DRIVER':
+                representation.pop('cargo_value', None)
+                representation['cargo_value'] = "RESTRICTED_ACCESS"
+
+        return representation
