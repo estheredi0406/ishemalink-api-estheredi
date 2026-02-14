@@ -70,3 +70,37 @@ Follow these steps to run the project locally.
 ```bash
 git clone (https://github.com/estheredi0406/ishemalink-api-estheredi )
 cd IshemaLink-API-Esteredi
+python -m venv venv
+source venv/bin/scripts/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+## 2. Security config
+
+SECRET_KEY=your_django_secret_key
+ENCRYPTION_KEY=your_32_byte_base64_fernet_key
+DEBUG=True
+
+## 2. Database initialization 
+
+python manage.py makemigrations
+python manage.py migrate
+# Create the admin account
+python manage.py createsuperuser
+# Optional: Load the demo logistics data
+python manage.py shell < create_demo_data.py
+
+## 3. CRun the server 
+python manage.py runserver
+
+Access the API Documentation at: http://127.0.0.1:8000/api/docs/
+
+
+Security & Compliance Documentation
+
+The full technical threat model, mitigation strategies, and Rwanda Data Protection Law compliance report can be found here:
+
+[**Technical Security Documentation (Google Doc)**](https://docs.google.com/document/d/1XZAGbR5qsc0cXiguuvx8TvRJLVGMaQfOyZ1fCZ2eZnk/edit?usp=sharing)
+
+*Note: This document details the architectural decisions made to protect citizen data and prevent unauthorized access. It also has the link to the demo video*
+
+
