@@ -22,6 +22,16 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+CORS_ALLOW_ALL_ORIGINS = True 
+
+# Allow the browser to send the Session Cookie (important for Task 1)
+CORS_ALLOW_CREDENTIALS = True 
+
+# Trusted origins for CSRF (Swagger uses these)
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
 
 # Application definition
 
@@ -34,8 +44,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Third-party libraries
-    'rest_framework',
-    'rest_framework_simplejwt',  # <--- REQUIRED for Auth
+    'corsheaders',
+    'rest_framework',            # <--- ONLY LIST THIS ONCE
+    'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',  
 
@@ -44,8 +55,8 @@ INSTALLED_APPS = [
     'domestic',
     'international',
 ]
- 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # <--- MUST BE AT THE VERY TOP
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
